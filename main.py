@@ -247,6 +247,10 @@ def extract_smart_context(prev_result: Dict, prev_chunk: str) -> str:
         context_parts.append(f"...{prev_chunk[-200:].strip()}")
     
     return " | ".join(context_parts)
+    
+text = text.replace("\r", "\n")
+text = re.sub(r'\n{2,}', '\n', text)
+text = re.sub(r'\s+', ' ', text)
 
 # ---------- STRICT REGEX PATTERNS FOR TASKS AND DELIVERABLES ----------
 TASK_PATTERNS = [
