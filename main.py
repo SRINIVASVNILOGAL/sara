@@ -35,6 +35,7 @@ OPENROUTER_API_KEYS = {
 }
 
 
+
 # ---------- LOGGING SETUP ----------
 def setup_logging():
     """Create logs directory and setup comprehensive logging with UTF-8 encoding."""
@@ -189,35 +190,49 @@ def clean_text(text: str) -> str:
 # ---------- OPTIMIZED CHUNKING ----------
 def split_into_page_chunks(text: str, pages_per_chunk: int = 6) -> List[str]:
     """
-    OPTIMIZED: 6 pages per chunk (was 3).
-    Reduces API calls by 50% while maintaining quality.
+    Robust chunking:
+    - Try to count page markers like '--- PAGE' (case-insensitive)
+    - If no page markers found, fallback to character-based chunks (cloud-safe)
     """
+    # count page markers with regex (more robust than simple count)
+    total_pages = len(re.findall(r'---\s*PAGE\b', text, flags=re.IGNORECASE))
+
+    # If no page markers, fall back to char-based chunks
+    if total_pages == 0:
+        # chunk by characters to keep prompt size reasonable
+        max_chars = 12000
+        chunks = [ text[i:i+max_chars] for i in range(0, len(text), max_chars) ]
+        logger.info(f"No page markers detected. Falling back to character-based chunking: {len(chunks)} chunks")
+        logger.info(f"📄 DOCUMENT SPLIT (FALLBACK) | Total Chars: {len(text)} | Chunks: {len(chunks)}")
+        return chunks
+
+    # otherwise, perform page-based chunking using the page markers
     lines = text.split('\n')
     chunks = []
     current_chunk_lines = []
     page_count = 0
-    total_pages = text.count('--- PAGE ')
-    
+
     for line in lines:
         current_chunk_lines.append(line)
-        if '--- PAGE ' in line:
+        if re.search(r'---\s*PAGE\b', line, flags=re.IGNORECASE):
             page_count += 1
             if page_count >= pages_per_chunk:
                 chunks.append('\n'.join(current_chunk_lines))
                 current_chunk_lines = []
                 page_count = 0
-    
+
     if current_chunk_lines:
         chunks.append('\n'.join(current_chunk_lines))
-    
+
     logger.info(f"\n{'='*100}")
     logger.info(f"📄 DOCUMENT SPLIT (OPTIMIZED)")
     logger.info(f"   Total Pages: {total_pages}")
     logger.info(f"   Pages per Chunk: {pages_per_chunk}")
     logger.info(f"   Total Chunks: {len(chunks)}")
     logger.info(f"{'='*100}\n")
-    
+
     return chunks
+
 
 # ---------- SMART CONTEXT EXTRACTION ----------
 def extract_smart_context(prev_result: Dict, prev_chunk: str) -> str:
@@ -248,9 +263,7 @@ def extract_smart_context(prev_result: Dict, prev_chunk: str) -> str:
     
     return " | ".join(context_parts)
     
-text = text.replace("\r", "\n")
-text = re.sub(r'\n{2,}', '\n', text)
-text = re.sub(r'\s+', ' ', text)
+
 
 # ---------- STRICT REGEX PATTERNS FOR TASKS AND DELIVERABLES ----------
 TASK_PATTERNS = [
@@ -356,7 +369,7 @@ def extract_with_api(text_chunk: str, chunk_name: str, api_account: str, api_key
     filtered_chunk = filter_with_regex(text_chunk)
 
     if not filtered_chunk.strip():
-        logger.warning(f"No candidates found in {chunk_name}, skipping.")
+        logger.warning(f"No regex matches found in {chunk_name}; using full text fallback.")
         return {"Tasks": [], "Deliverables": []}
 
     # Build context section safely
