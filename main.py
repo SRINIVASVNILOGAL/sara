@@ -27,9 +27,11 @@ if os.name == 'nt':
 load_dotenv()
 
 # Define API keys with placeholders
+import streamlit as st
+
 OPENROUTER_API_KEYS = {
-   "Account A": os.getenv("OPENROUTER_API_KEY_A",""),
-    "Account B": os.getenv("OPENROUTER_API_KEY_B", "")
+    "Account A": st.secrets["OPENROUTER_API_KEY_A"],
+    "Account B": st.secrets["OPENROUTER_API_KEY_B"]
 }
 
 
