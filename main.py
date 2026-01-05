@@ -28,8 +28,8 @@ load_dotenv()
 
 # Define API keys with placeholders
 OPENROUTER_API_KEYS = {
-   "Account A": os.getenv("OPENROUTER_API_KEY_A","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"),
-    "Account B": os.getenv("OPENROUTER_API_KEY_B", "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")
+   "Account A": os.getenv("OPENROUTER_API_KEY_A",""),
+    "Account B": os.getenv("OPENROUTER_API_KEY_B", "")
 }
 
 
